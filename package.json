@@ -27,5 +27,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "purescript": "^0.13.5",
+    "spago": "^0.10.0"
   }
 }
