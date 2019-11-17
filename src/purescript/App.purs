@@ -1,6 +1,7 @@
 module App where
 
 import Prelude
+import Affjax (printError)
 import Api.Dogs (getAllBreeds, getBreedImages)
 import Data.Either (Either(..))
 import Data.Map (lookup)
@@ -10,6 +11,7 @@ import Data.Tuple (Tuple)
 import Effect (Effect)
 import Effect.Aff (error, killFiber, launchAff, launchAff_)
 import Effect.Class (liftEffect)
+import Effect.Console (log, logShow)
 import Gallery (mkGallery)
 import Header (mkHeader)
 import Network.RemoteData (RemoteData(..))
@@ -41,7 +43,7 @@ mkApp = do
               (error "Unsubscribing from request to get breeds")
               breedsRequest
     _ <-
-      useEffect selectedBreed
+      useEffect [ selectedBreed ]
         $ case selectedBreed of
             Just breed -> do
               breedImagesRequest <-
@@ -49,7 +51,7 @@ mkApp = do
                   result <- getBreedImages breed
                   liftEffect
                     $ case result of
-                        Left e -> setBreeds identity
+                        Left e -> log $ printError e
                         Right response -> setBreeds (map $ M.insert breed response)
               pure
                 $ launchAff_

@@ -4,8 +4,9 @@ import Prelude
 import Affjax (Error(..), URL, get)
 import Affjax.ResponseFormat (json)
 import Control.Apply (lift2)
+import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode (decodeJson)
-import Data.Bifunctor (bimap, lmap)
+import Data.Bifunctor (bimap)
 import Data.Either (Either)
 import Data.Foldable (foldMap, intercalate)
 import Data.Generic.Rep (class Generic)
@@ -13,13 +14,17 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Set (Set)
+import Data.Set as S
 import Effect.Aff (Aff)
 import Foreign.Object (Object)
 import Foreign.Object as FO
 
-type Success
+type SuccessBreeds
   = { message :: Object (Array String)
     }
+
+type SuccessBreedImages
+  = { message :: Array URL }
 
 data Breed
   = Breed String
@@ -50,7 +55,7 @@ baseUrl = "https://dog.ceo/api"
 joinUrl :: Array String -> String
 joinUrl = intercalate "/"
 
-toBreeds :: Success -> Array Breed
+toBreeds :: SuccessBreeds -> Array Breed
 toBreeds =
   _.message
     >>> lift2 (<>)
@@ -67,7 +72,7 @@ getAllBreeds = do
     >>> decodeJson
     >>> bimap RequestContentError toMapBreedImages
   where
-  toMapBreedImages :: Success -> Map Breed Images
+  toMapBreedImages :: SuccessBreeds -> Map Breed Images
   toMapBreedImages =
     toBreeds
       >>> \bs -> foldMap (flip M.insert mempty) bs $ M.empty
@@ -76,8 +81,8 @@ getBreedImages :: Breed -> Aff (Either Error Images)
 getBreedImages b = do
   result <- get json url
   pure $ result >>= _.body
-    >>> decodeJson
-    >>> lmap RequestContentError
+    >>> (decodeJson :: Json -> Either String SuccessBreedImages)
+    >>> bimap RequestContentError (_.message >>> S.fromFoldable)
   where
   url = case b of
     Breed breed ->
