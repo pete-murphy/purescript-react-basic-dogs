@@ -45,11 +45,9 @@ mkApp = do
               , selectedBreed: selectedBreed
               , setSelectedBreed: setSelectedBreed
               }
-          , case breeds of
-              NotAsked -> R.text "Initial"
-              Loading -> R.text "Loading"
-              Failure e -> R.text $ printError e
-              Success a -> R.text $ show a
+          , case selectedBreed of
+              Just b -> R.text (show b)
+              Nothing -> R.text "Select a breed"
           ]
 
 useInput :: String -> Hook (UseState String) (Tuple String EventHandler)

@@ -13,6 +13,7 @@ You can edit this file as you like.
     , "psci-support"
     , "react-basic-hooks"
     , "remotedata"
+    , "stringutils"
     ]
 , packages =
     ./packages.dhall
