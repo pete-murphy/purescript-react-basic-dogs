@@ -32,7 +32,11 @@ data Breed
 
 derive instance eqBreed :: Eq Breed
 
-derive instance ordBreed :: Ord Breed
+instance ordBreed :: Ord Breed where
+  compare (B x) (B y) = compare x y
+  compare (SB x) (SB y) = compare x y
+  compare (B x) (SB y) = compare x.breed y.breed <> LT
+  compare (SB x) (B y) = compare x.breed y.breed <> GT
 
 derive instance genericBreed :: Generic Breed _
 

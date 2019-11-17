@@ -19,12 +19,13 @@ import React.Basic.DOM (CSS, css)
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (preventDefault)
 import React.Basic.Events (EventHandler, handler, handler_)
-import React.Basic.Hooks (JSX, ReactComponent, component, element)
+import React.Basic.Hooks (JSX, ReactComponent, component, element, fragment)
 import React.Basic.Hooks as React
 
 type HeaderProps
   = { search :: String
     , handleSearchChange :: EventHandler
+    , clearSearch :: Effect Unit
     , breeds :: RemoteData Error (Map Breed Images)
     , selectedBreed :: Maybe Breed
     , setSelectedBreed :: (Maybe Breed -> Maybe Breed) -> Effect Unit
@@ -59,7 +60,6 @@ mkHeader = do
                           }
                       ]
                   ]
-                , style: formStyle
                 , onSubmit: handler preventDefault (\_ -> logShow props.search)
                 }
             , element buttonGrid
@@ -68,6 +68,7 @@ mkHeader = do
                 , selectedBreed: props.selectedBreed
                 , setSelectedBreed: props.setSelectedBreed
                 , search: props.search
+                , clearSearch: props.clearSearch
                 }
             ]
           , style: headerStyle
@@ -81,18 +82,13 @@ mkHeader = do
       , gridTemplateRows: "1fr 1fr"
       }
 
-  formStyle :: CSS
-  formStyle =
-    css
-      { display: "flex"
-      }
-
 type ButtonGridProps
   = { breeds :: RemoteData Error (Map Breed Images)
     , enableSubBreeds :: Boolean
     , selectedBreed :: Maybe Breed
     , setSelectedBreed :: (Maybe Breed -> Maybe Breed) -> Effect Unit
     , search :: String
+    , clearSearch :: Effect Unit
     }
 
 mkButtonGrid :: Effect (ReactComponent ButtonGridProps)
@@ -107,6 +103,10 @@ mkButtonGrid = do
                 $ breedToString breed
             ]
           , onClick: handler_ $ props.setSelectedBreed (\_ -> Just breed)
+          , className:
+            case (map (_ == breed) props.selectedBreed) of
+              Just true -> "active"
+              _ -> ""
           }
 
       filterBreeds :: Map Breed Images -> Array Breed
@@ -131,17 +131,29 @@ mkButtonGrid = do
               NotAsked -> [ R.text "Initial" ]
               Loading -> [ R.text "Loading" ]
               Failure e -> [ R.text $ printError e ]
-              Success a -> case NEA.fromArray (filterBreeds a) of
+              Success breedImages -> case NEA.fromArray (filterBreeds breedImages) of
                 Just bs -> A.fromFoldable $ map mkButton bs
                 Nothing ->
                   [ R.div
                       { children:
-                        [ R.text case minimumBy
-                              (comparing $ levenshtein props.search)
-                              (M.keys >>> A.fromFoldable >>> map breedToString $ a) of
-                            Nothing -> mempty
-                            Just x -> "No matches for " <> props.search <> ", did you mean: " <> x <> "?"
-                        ]
+                        case minimumBy
+                            (comparing $ levenshtein props.search <<< breedToString)
+                            (A.fromFoldable $ M.keys breedImages) of
+                          Nothing -> mempty
+                          Just suggestion ->
+                            [ fragment
+                                [ R.text $ "No matches for " <> props.search <> ", did you mean: "
+                                , R.button
+                                    { children: [ R.text $ breedToString suggestion ]
+                                    , className: "suggestion"
+                                    , onClick:
+                                      handler_
+                                        $ props.setSelectedBreed (\_ -> Just suggestion)
+                                        *> props.clearSearch
+                                    }
+                                , R.text "?"
+                                ]
+                            ]
                       , style:
                         css
                           { gridColumn: "1 / -1"

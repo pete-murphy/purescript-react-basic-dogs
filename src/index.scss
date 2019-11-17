@@ -7,10 +7,31 @@
 }
 
 .App {
-  // outline: 1px solid red;
   max-width: 50rem;
   width: 100%;
   margin: 0 auto;
+}
+
+h1 {
+  font-weight: 800;
+  font-size: 2.5rem;
+  letter-spacing: -0.08ch;
+}
+
+header {
+  form {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    input[type="search"] {
+      margin: 1rem;
+      width: 30ch;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+  }
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 main {
@@ -21,13 +42,27 @@ main {
 }
 
 figure {
-  display: flex;
+  display: grid;
   margin: 0rem;
   padding: 0.2rem;
   max-width: 25%;
-  min-width: 10rem;
+  min-width: 4rem;
   height: 12rem;
   overflow: hidden;
+  justify-items: center;
+  align-content: center;
+  align-items: center;
+  img {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    transition: 200ms all;
+  }
+  span {
+    display: block;
+    font-size: 5rem;
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+  }
   
   img {
     width: 100%;
@@ -38,15 +73,26 @@ figure {
 ol {
   margin: 0;
   padding: 0;
-  gap: 0.2rem;
-  // * {
-  //   outline: 2px dashed magenta;
-  // }
+  gap: 0.5rem;
   button {
     border: 1px solid lightgray;
     border-radius: 3px;
     background: none;
     font-size: 1rem;
     margin: 0;
+    &:hover, &:focus {
+      box-shadow: 0 0 0 2px dodgerblue;
+    }
+    &.active {
+      background: dodgerblue;
+      color: white;
+    }
   }
+}
+
+button.suggestion {
+  display: contents;
+  color: tomato;
+  font-weight: 800;
+  cursor: pointer;
 }

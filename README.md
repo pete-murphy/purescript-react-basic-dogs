@@ -13,4 +13,5 @@ $ ln -s $PWD/output $PWD/src
 
 ### Todos
 
-- [ ] Better CSS (how to use `purescript-css` in React?)
+- [ ] Better CSS (how to use `purescript-css` in React? or `react-basic-emotion`?)
+- [ ] Use Context API instead of prop-drilling
