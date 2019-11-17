@@ -4,6 +4,8 @@ import Prelude
 import Affjax (Error, printError)
 import Api.Dogs (Breed(..), Images)
 import Data.Array as A
+import Data.Array.NonEmpty as NEA
+import Data.Foldable (minimumBy)
 import Data.Function (on)
 import Data.Map (Map)
 import Data.Map.Internal as M
@@ -11,6 +13,7 @@ import Data.Maybe (Maybe(..))
 import Data.String.Utils (includes)
 import Effect (Effect)
 import Effect.Console (logShow)
+import Levenshtein (levenshtein)
 import Network.RemoteData (RemoteData(..))
 import React.Basic.DOM (CSS, css)
 import React.Basic.DOM as R
@@ -25,6 +28,8 @@ type HeaderProps
     , breeds :: RemoteData Error (Map Breed Images)
     , selectedBreed :: Maybe Breed
     , setSelectedBreed :: (Maybe Breed -> Maybe Breed) -> Effect Unit
+    , enableSubBreeds :: Boolean
+    , toggleEnableSubBreeds :: Effect Unit
     }
 
 mkHeader :: Effect (ReactComponent HeaderProps)
@@ -45,12 +50,21 @@ mkHeader = do
                           , onChange: props.handleSearchChange
                           }
                       ]
+                  , R.label_
+                      [ R.text "Enable sub-breeds"
+                      , R.input
+                          { type: "checkbox"
+                          , checked: props.enableSubBreeds
+                          , onChange: handler_ props.toggleEnableSubBreeds
+                          }
+                      ]
                   ]
                 , style: formStyle
                 , onSubmit: handler preventDefault (\_ -> logShow props.search)
                 }
             , element buttonGrid
                 { breeds: props.breeds
+                , enableSubBreeds: props.enableSubBreeds
                 , selectedBreed: props.selectedBreed
                 , setSelectedBreed: props.setSelectedBreed
                 , search: props.search
@@ -75,6 +89,7 @@ mkHeader = do
 
 type ButtonGridProps
   = { breeds :: RemoteData Error (Map Breed Images)
+    , enableSubBreeds :: Boolean
     , selectedBreed :: Maybe Breed
     , setSelectedBreed :: (Maybe Breed -> Maybe Breed) -> Effect Unit
     , search :: String
@@ -89,9 +104,7 @@ mkButtonGrid = do
         R.button
           { children:
             [ R.text
-                $ case breed of
-                    Breed b -> b
-                    SubBreed b s -> b <> "-" <> s
+                $ breedToString breed
             ]
           , onClick: handler_ $ props.setSelectedBreed (\_ -> Just breed)
           }
@@ -101,7 +114,12 @@ mkButtonGrid = do
         M.keys
           >>> A.fromFoldable
           >>> A.filter
-              ( \breed -> case breed of
+              ( case _ of
+                  Breed _ -> true
+                  SubBreed _ _ -> props.enableSubBreeds
+              )
+          >>> A.filter
+              ( case _ of
                   Breed b -> includes props.search b
                   SubBreed b s -> ((||) `on` (includes props.search)) b s
               )
@@ -113,7 +131,23 @@ mkButtonGrid = do
               NotAsked -> [ R.text "Initial" ]
               Loading -> [ R.text "Loading" ]
               Failure e -> [ R.text $ printError e ]
-              Success a -> map mkButton (filterBreeds a)
+              Success a -> case NEA.fromArray (filterBreeds a) of
+                Just bs -> A.fromFoldable $ map mkButton bs
+                Nothing ->
+                  [ R.div
+                      { children:
+                        [ R.text case minimumBy
+                              (comparing $ levenshtein props.search)
+                              (M.keys >>> A.fromFoldable >>> map breedToString $ a) of
+                            Nothing -> mempty
+                            Just x -> "No matches for " <> props.search <> ", did you mean: " <> x <> "?"
+                        ]
+                      , style:
+                        css
+                          { gridColumn: "1 / -1"
+                          }
+                      }
+                  ]
           , style: buttonGridStyle
           }
   where
@@ -126,3 +160,8 @@ mkButtonGrid = do
       , gridAutoFlow: "column"
       , gridColumn: "1 / -1"
       }
+
+breedToString :: Breed -> String
+breedToString = case _ of
+  Breed b -> b
+  SubBreed b s -> b <> "-" <> s

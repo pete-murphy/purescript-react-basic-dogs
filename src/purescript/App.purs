@@ -29,6 +29,7 @@ mkApp = do
     breeds /\ setBreeds <- useState NotAsked
     search /\ handleSearchChange <- useInput ""
     selectedBreed /\ setSelectedBreed <- useState Nothing
+    enableSubBreeds /\ toggleEnableSubBreeds <- useToggle false
     _ <-
       useEffect unit do
         breedsRequest <-
@@ -67,6 +68,8 @@ mkApp = do
               , search: search
               , selectedBreed: selectedBreed
               , setSelectedBreed: setSelectedBreed
+              , enableSubBreeds: enableSubBreeds
+              , toggleEnableSubBreeds: toggleEnableSubBreeds
               }
           , case breeds of
               Success bs -> case (selectedBreed >>= flip lookup bs) of
@@ -83,3 +86,10 @@ useInput initialValue = React.do
       handler targetValue \v -> do
         setValue \_ -> fromMaybe "" v
   pure (value /\ handleChange)
+
+useToggle :: Boolean -> Hook (UseState Boolean) (Tuple Boolean (Effect Unit))
+useToggle initialValue = React.do
+  value /\ setValue <- useState initialValue
+  let
+    toggleValue = setValue not
+  pure (value /\ toggleValue)

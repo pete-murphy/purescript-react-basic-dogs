@@ -5,9 +5,8 @@ import Affjax (URL)
 import Api.Dogs (Images)
 import Data.Array as A
 import Effect (Effect)
-import React.Basic.DOM (CSS, css)
 import React.Basic.DOM as R
-import React.Basic.Hooks (JSX, ReactComponent, component, useEffect, useState, (/\))
+import React.Basic.Hooks (JSX, ReactComponent, component)
 import React.Basic.Hooks as React
 
 type GalleryProps
@@ -20,7 +19,6 @@ mkGallery = do
     pure
       $ R.main
           { children: mkImg <$> A.fromFoldable props.imageSet
-          , style: galleryStyle
           }
   where
   mkImg :: URL -> JSX
@@ -32,8 +30,3 @@ mkGallery = do
             }
         ]
       }
-
-  galleryStyle :: CSS
-  galleryStyle =
-    css
-      {}

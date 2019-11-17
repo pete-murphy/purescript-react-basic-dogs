@@ -10,20 +10,19 @@ main {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-
-  * {
-    // outline: 1px solid red;
-  }
+  justify-content: space-between;
 }
 
 figure {
-  // max-width: 30%;
-  max-width: 12rem;
+  display: flex;
+  margin: 0;
+  max-width: 25%;
+  min-width: 10rem;
   height: 12rem;
-  // background: blue;
   overflow: hidden;
+  
   img {
     width: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
 }
