@@ -5,7 +5,15 @@ You can edit this file as you like.
 { name =
     "my-project"
 , dependencies =
-    [ "affjax", "console", "effect", "psci-support", "react-basic-hooks" ]
+    [ "affjax"
+    , "argonaut-codecs"
+    , "console"
+    , "css"
+    , "effect"
+    , "psci-support"
+    , "react-basic-hooks"
+    , "remotedata"
+    ]
 , packages =
     ./packages.dhall
 , sources =
