@@ -11,7 +11,9 @@ import Data.Either (Either)
 import Data.Foldable (foldMap, intercalate)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Map (Map, empty, insert)
+import Data.Map (Map)
+import Data.Map as M
+import Data.Set (Set)
 import Effect.Aff (Aff)
 import Foreign.Object (Object)
 import Foreign.Object as FO
@@ -41,7 +43,7 @@ instance showBreed :: Show Breed where
   show = genericShow
 
 type Images
-  = Array URL
+  = Set URL
 
 baseUrl :: URL
 baseUrl = "https://dog.ceo/api"
@@ -69,7 +71,7 @@ getAllBreeds = do
   toMapBreedImages :: Success -> Map Breed Images
   toMapBreedImages =
     toBreeds
-      >>> \bs -> foldMap (flip insert mempty) bs $ empty
+      >>> \bs -> foldMap (flip M.insert mempty) bs $ M.empty
 
 getBreedImages :: Breed -> Aff (Either Error Json)
 getBreedImages b = (map >>> map) _.body (get json url)
