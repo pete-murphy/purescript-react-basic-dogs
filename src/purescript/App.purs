@@ -1,9 +1,9 @@
 module App where
 
 import Prelude
-import Affjax (printError)
-import Api.Dogs (getAllBreeds)
+import Api.Dogs (getAllBreeds, getBreedImages)
 import Data.Either (Either(..))
+import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple)
 import Effect (Effect)
@@ -35,7 +35,29 @@ mkApp = do
                       $ case result of
                           Left e -> setBreeds (\_ -> Failure e)
                           Right response -> setBreeds (\_ -> Success response)
-            pure $ launchAff_ $ killFiber (error "Unsubscribing from request to get breeds") breedsRequest
+            pure
+              $ launchAff_
+              $ killFiber
+                  (error "Unsubscribing from request to get breeds")
+                  breedsRequest
+    _ <-
+      useEffect selectedBreed
+        $ case selectedBreed of
+            Just breed -> do
+              breedImagesRequest <-
+                launchAff
+                  $ do
+                      result <- getBreedImages breed
+                      liftEffect
+                        $ case result of
+                            Left e -> setBreeds identity
+                            Right response -> setBreeds (map $ M.insert breed response)
+              pure
+                $ launchAff_
+                $ killFiber
+                    (error $ "Unsubscribing from request to get breed images for " <> show breed)
+                    breedImagesRequest
+            Nothing -> pure mempty
     pure
       $ fragment
           [ element header

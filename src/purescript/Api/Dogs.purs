@@ -6,7 +6,7 @@ import Affjax.ResponseFormat (json)
 import Control.Apply (lift2)
 import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode (decodeJson)
-import Data.Bifunctor (bimap)
+import Data.Bifunctor (bimap, lmap)
 import Data.Either (Either)
 import Data.Foldable (foldMap, intercalate)
 import Data.Generic.Rep (class Generic)
@@ -73,8 +73,12 @@ getAllBreeds = do
     toBreeds
       >>> \bs -> foldMap (flip M.insert mempty) bs $ M.empty
 
-getBreedImages :: Breed -> Aff (Either Error Json)
-getBreedImages b = (map >>> map) _.body (get json url)
+getBreedImages :: Breed -> Aff (Either Error Images)
+getBreedImages b = do
+  result <- get json url
+  pure $ result >>= _.body
+    >>> decodeJson
+    >>> lmap RequestContentError
   where
   url = case b of
     Breed breed ->
