@@ -56,7 +56,7 @@ toBreeds =
         (FO.foldMap mkSubBreed)
   where
   mkSubBreed :: String -> Array String -> Array Breed
-  mkSubBreed breed = map (SB <<< ({ breed: breed, subBreed: _ }))
+  mkSubBreed breed = map (SB <<< { breed: breed, subBreed: _ })
 
 getAllBreeds :: Aff (Either Error (Map Breed Images))
 getAllBreeds = do

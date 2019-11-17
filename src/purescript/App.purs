@@ -18,7 +18,16 @@ import Network.RemoteData (RemoteData(..))
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (targetValue)
 import React.Basic.Events (EventHandler, handler)
-import React.Basic.Hooks (Hook, ReactComponent, UseState, component, element, fragment, useEffect, useState, (/\))
+import React.Basic.Hooks
+  ( Hook
+  , ReactComponent
+  , UseState
+  , component
+  , element
+  , useEffect
+  , useState
+  , (/\)
+  )
 import React.Basic.Hooks as React
 
 mkApp :: Effect (ReactComponent {})
@@ -61,22 +70,25 @@ mkApp = do
                     breedImagesRequest
             Nothing -> pure mempty
     pure
-      $ fragment
-          [ element header
-              { breeds: breeds
-              , handleSearchChange: handleSearchChange
-              , search: search
-              , selectedBreed: selectedBreed
-              , setSelectedBreed: setSelectedBreed
-              , enableSubBreeds: enableSubBreeds
-              , toggleEnableSubBreeds: toggleEnableSubBreeds
-              }
-          , case breeds of
-              Success bs -> case (selectedBreed >>= flip lookup bs) of
-                Just imgs -> element gallery { imageSet: imgs }
-                Nothing -> R.text "Select a breed"
-              _ -> mempty
-          ]
+      $ R.div
+          { className: "App"
+          , children:
+            [ element header
+                { breeds: breeds
+                , handleSearchChange: handleSearchChange
+                , search: search
+                , selectedBreed: selectedBreed
+                , setSelectedBreed: setSelectedBreed
+                , enableSubBreeds: enableSubBreeds
+                , toggleEnableSubBreeds: toggleEnableSubBreeds
+                }
+            , case breeds of
+                Success bs -> case (selectedBreed >>= flip lookup bs) of
+                  Just imgs -> element gallery { imageSet: imgs }
+                  Nothing -> R.text "Select a breed"
+                _ -> mempty
+            ]
+          }
 
 useInput :: String -> Hook (UseState String) (Tuple String EventHandler)
 useInput initialValue = React.do
