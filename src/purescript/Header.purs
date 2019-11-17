@@ -115,13 +115,13 @@ mkButtonGrid = do
           >>> A.fromFoldable
           >>> A.filter
               ( case _ of
-                  Breed _ -> true
-                  SubBreed _ _ -> props.enableSubBreeds
+                  B _ -> true
+                  SB _ -> props.enableSubBreeds
               )
           >>> A.filter
               ( case _ of
-                  Breed b -> includes props.search b
-                  SubBreed b s -> ((||) `on` (includes props.search)) b s
+                  B { breed } -> includes props.search breed
+                  SB { breed, subBreed } -> ((||) `on` (includes props.search)) breed subBreed
               )
           >>> A.take 12
     pure
@@ -163,5 +163,5 @@ mkButtonGrid = do
 
 breedToString :: Breed -> String
 breedToString = case _ of
-  Breed b -> b
-  SubBreed b s -> b <> "-" <> s
+  B { breed } -> breed
+  SB { breed, subBreed } -> breed <> "-" <> subBreed

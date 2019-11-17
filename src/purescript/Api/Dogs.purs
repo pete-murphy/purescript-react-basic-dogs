@@ -27,19 +27,12 @@ type SuccessBreedImages
   = { message :: Array URL }
 
 data Breed
-  = Breed String
-  | SubBreed String String
+  = B { breed :: String }
+  | SB { breed :: String, subBreed :: String }
 
-instance eqBreed :: Eq Breed where
-  eq (Breed b0) (Breed b1) = b0 == b1
-  eq (SubBreed b0 s0) (SubBreed b1 s1) = b0 == b1 && s0 == s1
-  eq _ _ = false
+derive instance eqBreed :: Eq Breed
 
-instance ordBreed :: Ord Breed where
-  compare (Breed b0) (Breed b1) = compare b0 b1
-  compare (SubBreed b0 s0) (SubBreed b1 s1) = compare b0 b1 <> compare s0 s1
-  compare (Breed b0) (SubBreed b1 _) = compare b0 b1 <> LT
-  compare (SubBreed b0 _) (Breed b1) = compare b0 b1 <> GT
+derive instance ordBreed :: Ord Breed
 
 derive instance genericBreed :: Generic Breed _
 
@@ -59,15 +52,15 @@ toBreeds :: SuccessBreeds -> Array Breed
 toBreeds =
   _.message
     >>> lift2 (<>)
-        (FO.keys >>> map Breed)
+        (FO.keys >>> map (B <<< { breed: _ }))
         (FO.foldMap mkSubBreed)
   where
   mkSubBreed :: String -> Array String -> Array Breed
-  mkSubBreed breed = map (SubBreed breed)
+  mkSubBreed breed = map (SB <<< ({ breed: breed, subBreed: _ }))
 
 getAllBreeds :: Aff (Either Error (Map Breed Images))
 getAllBreeds = do
-  result <- get json (joinUrl [ baseUrl, "breeds/list/all" ])
+  result <- get json (baseUrl <> "/breeds/list/all")
   pure $ result >>= _.body
     >>> decodeJson
     >>> bimap RequestContentError toMapBreedImages
@@ -75,7 +68,7 @@ getAllBreeds = do
   toMapBreedImages :: SuccessBreeds -> Map Breed Images
   toMapBreedImages =
     toBreeds
-      >>> \bs -> foldMap (flip M.insert mempty) bs $ M.empty
+      >>> \bs -> foldMap (_ `M.insert` mempty) bs $ M.empty
 
 getBreedImages :: Breed -> Aff (Either Error Images)
 getBreedImages b = do
@@ -85,9 +78,9 @@ getBreedImages b = do
     >>> bimap RequestContentError (_.message >>> S.fromFoldable)
   where
   url = case b of
-    Breed breed ->
+    B { breed } ->
       joinUrl
         [ baseUrl, "breed", breed, "images" ]
-    SubBreed breed subBreed ->
+    SB { breed, subBreed } ->
       joinUrl
         [ baseUrl, "breed", breed, subBreed, "images" ]
