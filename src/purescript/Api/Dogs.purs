@@ -4,7 +4,6 @@ import Prelude
 import Affjax (Error(..), URL, get)
 import Affjax.ResponseFormat (json)
 import Control.Apply (lift2)
-import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode (decodeJson)
 import Data.Bifunctor (bimap, lmap)
 import Data.Either (Either)

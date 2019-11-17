@@ -3,12 +3,14 @@ module App where
 import Prelude
 import Api.Dogs (getAllBreeds, getBreedImages)
 import Data.Either (Either(..))
+import Data.Map (lookup)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple)
 import Effect (Effect)
 import Effect.Aff (error, killFiber, launchAff, launchAff_)
 import Effect.Class (liftEffect)
+import Gallery (mkGallery)
 import Header (mkHeader)
 import Network.RemoteData (RemoteData(..))
 import React.Basic.DOM as R
@@ -20,38 +22,35 @@ import React.Basic.Hooks as React
 mkApp :: Effect (ReactComponent {})
 mkApp = do
   header <- mkHeader
+  gallery <- mkGallery
   component "App" \_ -> React.do
     breeds /\ setBreeds <- useState NotAsked
     search /\ handleSearchChange <- useInput ""
     selectedBreed /\ setSelectedBreed <- useState Nothing
     _ <-
-      useEffect unit
-        $ do
-            breedsRequest <-
-              launchAff
-                $ do
-                    result <- getAllBreeds
-                    liftEffect
-                      $ case result of
-                          Left e -> setBreeds (\_ -> Failure e)
-                          Right response -> setBreeds (\_ -> Success response)
-            pure
-              $ launchAff_
-              $ killFiber
-                  (error "Unsubscribing from request to get breeds")
-                  breedsRequest
+      useEffect unit do
+        breedsRequest <-
+          launchAff do
+            result <- getAllBreeds
+            liftEffect case result of
+              Left e -> setBreeds (\_ -> Failure e)
+              Right response -> setBreeds (\_ -> Success response)
+        pure
+          $ launchAff_
+          $ killFiber
+              (error "Unsubscribing from request to get breeds")
+              breedsRequest
     _ <-
       useEffect selectedBreed
         $ case selectedBreed of
             Just breed -> do
               breedImagesRequest <-
-                launchAff
-                  $ do
-                      result <- getBreedImages breed
-                      liftEffect
-                        $ case result of
-                            Left e -> setBreeds identity
-                            Right response -> setBreeds (map $ M.insert breed response)
+                launchAff do
+                  result <- getBreedImages breed
+                  liftEffect
+                    $ case result of
+                        Left e -> setBreeds identity
+                        Right response -> setBreeds (map $ M.insert breed response)
               pure
                 $ launchAff_
                 $ killFiber
@@ -67,9 +66,11 @@ mkApp = do
               , selectedBreed: selectedBreed
               , setSelectedBreed: setSelectedBreed
               }
-          , case selectedBreed of
-              Just b -> R.text (show b)
-              Nothing -> R.text "Select a breed"
+          , case breeds of
+              Success bs -> case (selectedBreed >>= flip lookup bs) of
+                Just imgs -> element gallery { imageSet: imgs }
+                Nothing -> R.text "Select a breed"
+              _ -> mempty
           ]
 
 useInput :: String -> Hook (UseState String) (Tuple String EventHandler)

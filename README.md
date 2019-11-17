@@ -1,12 +1,16 @@
-Install everything
+### Install everything
 
 ```sh
 $ npm install
 $ npx spago build
 ```
 
-Symlink PureScript `output` directory into `src`
+### Make PureScript output available
 
 ```sh
 $ ln -s $PWD/output $PWD/src
 ```
+
+### Todos
+
+- [ ] Better CSS (how to use `purescript-css` in React?)
