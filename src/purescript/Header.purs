@@ -121,8 +121,8 @@ mkButtonGrid = do
   buttonGridStyle =
     css
       { display: "grid"
-      , gridTemplateColumns: "repeat(3, minmax(10rem, 1fr))"
-      , gridTemplateRows: "repeat(4, 1fr)"
+      , gridTemplateColumns: "repeat(4, minmax(10rem, 1fr))"
+      , gridTemplateRows: "repeat(3, 1fr)"
       , gridAutoFlow: "column"
       , gridColumn: "1 / -1"
       }
