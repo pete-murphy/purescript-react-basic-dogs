@@ -9,83 +9,70 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple)
 import Effect (Effect)
-import Effect.Aff (error, killFiber, launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 import Gallery (mkGallery)
 import Header (mkHeader)
-import Network.RemoteData (RemoteData(..))
+import Network.RemoteData (RemoteData(..), fromEither)
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (targetValue)
 import React.Basic.Events (EventHandler, handler)
-import React.Basic.Hooks (Hook, ReactComponent, UseState, component, element, useEffect, useState, (/\))
+import React.Basic.Hooks (Hook, ReactComponent, UseState, component, element, useState, (/\))
 import React.Basic.Hooks as React
+import React.Basic.Hooks.Aff (useAff)
 
 mkApp :: Effect (ReactComponent {})
 mkApp = do
   header <- mkHeader
   gallery <- mkGallery
   component "App" \_ -> React.do
+    -- | Set initial state
     breeds /\ setBreeds <- useState NotAsked
     search <- useInput ""
     selectedBreed /\ setSelectedBreed <- useState Nothing
     enableSubBreeds /\ toggleEnableSubBreeds <- useToggle false
-    _ <-
-      useEffect unit do
-        breedsRequest <-
-          launchAff do
-            result <- getAllBreeds
-            liftEffect case result of
-              Left e -> setBreeds (\_ -> Failure e)
-              Right response -> setBreeds (\_ -> Success response)
-        pure
-          $ launchAff_
-          $ killFiber
-              (error "Unsubscribing from request to get breeds")
-              breedsRequest
-    _ <-
-      useEffect [ selectedBreed ]
-        $ case selectedBreed of
-            Just breed -> do
-              breedImagesRequest <-
-                launchAff do
-                  result <- getBreedImages breed
-                  liftEffect
-                    $ case result of
-                        Left e -> log $ printError e
-                        Right response -> setBreeds (map $ M.insert breed response)
-              pure
-                $ launchAff_
-                $ killFiber
-                    (error $ "Unsubscribing from request to get breed images for " <> show breed)
-                    breedImagesRequest
-            Nothing -> pure mempty
+    -- | Call getAllBreeds and setBreeds on initial render
+    useAff unit do
+      result <- getAllBreeds
+      liftEffect do
+        setBreeds (const (fromEither result))
+    -- | Call getBreedImages and insert results into breeds state
+    -- | whenever the selectedBreed changes
+    useAff selectedBreed do
+      case selectedBreed of
+        Just breed -> do
+          result <- getBreedImages breed
+          liftEffect do
+            case result of
+              Left e -> log do printError e
+              Right response -> setBreeds (map (M.insert breed response))
+        Nothing -> mempty
     let
-      clearSearch = search.setValue (\_ -> "")
-    pure
-      $ R.div
-          { className: "App"
-          , children:
-            [ element header
-                { breeds: breeds
-                , handleSearchChange: search.handleChange
-                , search: search.value
-                , clearSearch: clearSearch
-                , selectedBreed: selectedBreed
-                , setSelectedBreed: setSelectedBreed
-                , enableSubBreeds: enableSubBreeds
-                , toggleEnableSubBreeds: toggleEnableSubBreeds
-                }
-            , R.main
-                { children:
-                  A.singleton case breeds of
-                    Success bs -> case (selectedBreed >>= flip M.lookup bs) of
-                      Just imgs -> element gallery { imageSet: imgs }
-                      Nothing -> R.p_ [ R.text "Select a breed" ]
-                    _ -> mempty
-                }
-            ]
-          }
+      clearSearch = search.setValue (const "")
+    pure do
+      R.div
+        { className: "App"
+        , children:
+          [ element header
+              { breeds: breeds
+              , handleSearchChange: search.handleChange
+              , search: search.value
+              , clearSearch: clearSearch
+              , selectedBreed: selectedBreed
+              , setSelectedBreed: setSelectedBreed
+              , enableSubBreeds: enableSubBreeds
+              , toggleEnableSubBreeds: toggleEnableSubBreeds
+              }
+          , R.main
+              { children:
+                A.singleton case breeds of
+                  Success bs -> case (selectedBreed >>= flip M.lookup bs) of
+                    Just imgs -> element gallery { imageSet: imgs }
+                    Nothing -> R.p_ [ R.text "Select a breed" ]
+                  _ -> mempty
+              }
+          ]
+        }
 
 useInput ::
   String ->
